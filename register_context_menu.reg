@@ -1,0 +1,9 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\image\shell\ZConverter]
+"MUIVerb"="Convert to PDF"
+"MultiSelectModel"="Player"
+"Icon"="E:\\Zconverter\\out\\build\\x64-debug\\zconverter.exe"
+
+[HKEY_CLASSES_ROOT\SystemFileAssociations\image\shell\ZConverter\command]
+@="\"E:\\Zconverter\\out\\build\\x64-debug\\zconverter.exe\" --convert \"%1\""
