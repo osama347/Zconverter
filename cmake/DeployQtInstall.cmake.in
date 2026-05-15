@@ -1,0 +1,17 @@
+set(_zconverter_windeployqt "@WINDEPLOYQT_EXECUTABLE@")
+set(_zconverter_install_dir "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/bin")
+
+if(EXISTS "${_zconverter_install_dir}/zconverter.exe")
+    execute_process(
+        COMMAND "${_zconverter_windeployqt}"
+            --compiler-runtime
+            --no-translations
+            --dir "${_zconverter_install_dir}"
+            "${_zconverter_install_dir}/zconverter.exe"
+        RESULT_VARIABLE _deploy_result
+    )
+
+    if(NOT _deploy_result EQUAL 0)
+        message(FATAL_ERROR "windeployqt failed with exit code ${_deploy_result}")
+    endif()
+endif()

@@ -95,15 +95,32 @@ namespace zc {
 
         HDROP hDrop = static_cast<HDROP>(GlobalLock(stm.hGlobal));
         if (hDrop) {
-            DragQueryFileW(hDrop, 0, filePath_, MAX_PATH);
+            UINT fileCount = DragQueryFileW(hDrop, 0xFFFFFFFF, nullptr, 0);
+            selectedFiles_.clear();
+            selectedFiles_.reserve(fileCount);
+
+            hasConvertibleSelection_ = true;
+
+            for (UINT i = 0; i < fileCount; ++i) {
+                wchar_t path[MAX_PATH]{};
+                DragQueryFileW(hDrop, i, path, MAX_PATH);
+
+                if (!IsConvertibleExt(path)) {
+                    selectedFiles_.clear();
+                    hasConvertibleSelection_ = false;
+                    break;
+                }
+
+                selectedFiles_.emplace_back(path);
+            }
+
             GlobalUnlock(stm.hGlobal);
         }
         ReleaseStgMedium(&stm);
 
-        // Decide which menu to show based on file type
-        isSupportedNonPdf_ = IsConvertibleExt(filePath_);
-
-        return isSupportedNonPdf_ ? S_OK : E_FAIL;
+        return hasConvertibleSelection_ && !selectedFiles_.empty()
+            ? S_OK
+            : E_FAIL;
     }
 
     // ── IContextMenu ──────────────────────────────────────────
@@ -151,6 +168,9 @@ namespace zc {
         if (idCmd != CMD_CONVERT_TO_PDF)
             return E_INVALIDARG;
 
+        if (selectedFiles_.empty())
+            return E_FAIL;
+
         // Find zconverter.exe next to this DLL
         wchar_t dllDir[MAX_PATH]{};
         GetModuleFileNameW(g_hInst, dllDir, MAX_PATH);
@@ -164,11 +184,16 @@ namespace zc {
         if (GetFileAttributesW(exePath) == INVALID_FILE_ATTRIBUTES)
             return HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND);
 
-        // Build command line
-        wchar_t cmdLine[32768]{};
-        StringCchPrintfW(cmdLine, 32768,
-            L"\"%s\" --convert \"%s\"",
-            exePath, filePath_);
+        // Build command line for all selected files.
+        std::wstring cmdLine = L"\"";
+        cmdLine += exePath;
+        cmdLine += L"\" --to pdf";
+
+        for (const auto& file : selectedFiles_) {
+            cmdLine += L" \"";
+            cmdLine += file;
+            cmdLine += L"\"";
+        }
 
         STARTUPINFOW si{};
         si.cb = sizeof(si);
@@ -177,7 +202,7 @@ namespace zc {
 
         PROCESS_INFORMATION pi{};
         BOOL ok = CreateProcessW(
-            nullptr, cmdLine,
+            nullptr, cmdLine.data(),
             nullptr, nullptr,
             FALSE, CREATE_NO_WINDOW,
             nullptr, nullptr,
@@ -204,7 +229,7 @@ namespace zc {
         if (uType == GCS_HELPTEXTW) {
             StringCchCopyW(
                 reinterpret_cast<wchar_t*>(pszName), cchMax,
-                L"Convert this file to PDF with zconverter");
+                L"Convert the selected file(s) to PDF with zconverter");
             return S_OK;
         }
         if (uType == GCS_VERBW) {
