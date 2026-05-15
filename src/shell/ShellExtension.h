@@ -3,6 +3,8 @@
 #include <windows.h>
 #include <shlobj.h>
 #include <atomic>
+#include <vector>
+#include <string>
 
 // {A1B2C3D4-E5F6-7890-ABCD-EF1234567890}
 static constexpr GUID CLSID_ZConverterShellExt = {
@@ -51,8 +53,8 @@ namespace zc {
 
     private:
         std::atomic<ULONG> refCount_{ 1 };
-        wchar_t            filePath_[MAX_PATH]{};
-        bool               isSupportedNonPdf_{ false };
+        std::vector<std::wstring> selectedFiles_;
+        bool                      hasConvertibleSelection_{ false };
     };
 
     class ShellExtensionFactory : public IClassFactory

@@ -1,4 +1,5 @@
 #include "OfficeToPdfConverter.h"
+#include <QCoreApplication>
 #include <QProcess>
 #include <QFileInfo>
 #include <QDir>
@@ -42,6 +43,11 @@ namespace zc {
 
     QString OfficeToPdfConverter::libreOfficePath()
     {
+        // Bundled portable runtime next to the app
+        QString appLocal = QDir(QCoreApplication::applicationDirPath())
+            .filePath("libreoffice/program/soffice.exe");
+        if (QFileInfo::exists(appLocal)) return appLocal;
+
         // Primary install location
         QString path = "C:/Program Files/LibreOffice/program/soffice.exe";
         if (QFileInfo::exists(path)) return path;
