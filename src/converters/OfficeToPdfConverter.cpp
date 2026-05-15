@@ -43,6 +43,18 @@ namespace zc {
 
     QString OfficeToPdfConverter::libreOfficePath()
     {
+#ifdef Q_OS_MAC
+        // Bundled app inside zconverter.app/Contents/Frameworks
+        QString bundledMac = QDir(QCoreApplication::applicationDirPath())
+            .filePath("../Frameworks/LibreOffice.app/Contents/MacOS/soffice");
+        bundledMac = QDir::cleanPath(bundledMac);
+        if (QFileInfo::exists(bundledMac)) return bundledMac;
+
+        // System-wide install
+        QString macApp = "/Applications/LibreOffice.app/Contents/MacOS/soffice";
+        if (QFileInfo::exists(macApp)) return macApp;
+#endif
+
         // Bundled portable runtime next to the app
         QString appLocal = QDir(QCoreApplication::applicationDirPath())
             .filePath("libreoffice/program/soffice.exe");

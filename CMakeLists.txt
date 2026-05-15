@@ -10,7 +10,7 @@ set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
 
 set(ZCONVERTER_LIBREOFFICE_ROOT "" CACHE PATH
-    "Optional portable LibreOffice root to bundle on Windows")
+    "Optional portable LibreOffice app root to bundle with the installer")
 
 find_package(Qt6 REQUIRED COMPONENTS
     Core Widgets Gui PrintSupport
@@ -19,6 +19,14 @@ find_package(Qt6 REQUIRED COMPONENTS
 if(WIN32)
     find_program(WINDEPLOYQT_EXECUTABLE
         NAMES windeployqt windeployqt.exe
+        HINTS
+            "${Qt6_DIR}/../../../bin"
+            "${Qt6_DIR}/../../bin"
+            "${CMAKE_PREFIX_PATH}/bin"
+    )
+elseif(APPLE)
+    find_program(MACDEPLOYQT_EXECUTABLE
+        NAMES macdeployqt
         HINTS
             "${Qt6_DIR}/../../../bin"
             "${Qt6_DIR}/../../bin"
@@ -109,6 +117,22 @@ if(WIN32)
         )
         install(SCRIPT ${CMAKE_BINARY_DIR}/DeployQtInstall.cmake)
     endif()
+elseif(APPLE)
+    if(ZCONVERTER_LIBREOFFICE_ROOT AND EXISTS "${ZCONVERTER_LIBREOFFICE_ROOT}/Contents/MacOS/soffice")
+        install(DIRECTORY "${ZCONVERTER_LIBREOFFICE_ROOT}"
+            DESTINATION "zconverter.app/Contents/Frameworks"
+            USE_SOURCE_PERMISSIONS
+        )
+    endif()
+
+    if(MACDEPLOYQT_EXECUTABLE)
+        configure_file(
+            ${CMAKE_SOURCE_DIR}/cmake/DeployMacInstall.cmake.in
+            ${CMAKE_BINARY_DIR}/DeployMacInstall.cmake
+            @ONLY
+        )
+        install(SCRIPT ${CMAKE_BINARY_DIR}/DeployMacInstall.cmake)
+    endif()
 endif()
 
 if(WIN32)
@@ -126,5 +150,13 @@ if(WIN32)
     set(CPACK_NSIS_EXTRA_UNINSTALL_COMMANDS
         "ExecWait '\"$SYSDIR\\regsvr32.exe\" /s /u \"$INSTDIR\\bin\\zconverter_shell.dll\"'"
     )
-    include(CPack)
+elseif(APPLE)
+    set(CPACK_GENERATOR "DragNDrop")
+    set(CPACK_PACKAGE_NAME "zconverter")
+    set(CPACK_PACKAGE_VENDOR "zconverter")
+    set(CPACK_PACKAGE_VERSION "${PROJECT_VERSION}")
+    set(CPACK_PACKAGE_FILE_NAME "zconverter-${PROJECT_VERSION}-macos")
+    set(CPACK_DMG_VOLUME_NAME "zconverter")
 endif()
+
+include(CPack)
